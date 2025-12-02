@@ -46,6 +46,7 @@ class Tracker:
         self.kf = kalman_filter.KalmanFilter()
         self.tracks = []
         self._next_id = 1
+        self.inactive_tracks = []
 
     def predict(self):
         """Propagate track state distributions one time step forward.
@@ -74,8 +75,56 @@ class Tracker:
                 self.kf, detections[detection_idx])
         for track_idx in unmatched_tracks:
             self.tracks[track_idx].mark_missed()
+        # ==================================================
+        # 遮挡恢复：从 inactive_tracks 里找相似目标
+        # ==================================================
+        restored = []
+        new_unmatched_detections = []
+
+        for det_idx in unmatched_detections:
+            detection = detections[det_idx]
+            det_feat = detection.feature
+
+            best_sim = 0
+            best_track = None
+
+            # inactive pool 为空则直接 defer
+            if len(self.inactive_tracks) == 0:
+                new_unmatched_detections.append(det_idx)
+                continue
+
+            for track in self.inactive_tracks:
+                if len(track.features) == 0:
+                    continue
+
+                track_feat = track.features[-1]
+
+                # 余弦相似度
+                sim = float(np.dot(det_feat, track_feat) /
+                            (np.linalg.norm(det_feat) * np.linalg.norm(track_feat) + 1e-6))
+
+                if sim > best_sim:
+                    best_sim = sim
+                    best_track = track
+
+            # 如果相似度足够高，则恢复轨迹
+            if best_track is not None and best_sim > 0.45:
+                print(f"[Recovery] Track {best_track.track_id} recovered, sim={best_sim:.3f}")
+                best_track.reactivate(detection, self.kf)
+                self.tracks.append(best_track)
+                self.inactive_tracks.remove(best_track)
+                restored.append(det_idx)
+            else:
+                new_unmatched_detections.append(det_idx)
+
+        # 替换 unmatched_detections
+        unmatched_detections = new_unmatched_detections
+
         for detection_idx in unmatched_detections:
             self._initiate_track(detections[detection_idx])
+        dead_tracks = [t for t in self.tracks if t.is_deleted()]
+        for t in dead_tracks:
+            self.inactive_tracks.append(t)
         self.tracks = [t for t in self.tracks if not t.is_deleted()]
 
         # Update distance metric.

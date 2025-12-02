@@ -81,6 +81,26 @@ class Track:
 
         self._n_init = n_init
         self._max_age = max_age
+    
+    def reactivate(self, detection, kf):
+        """
+        遮挡恢复：保持原来的 track_id，不重新分配。
+        用新的 detection 重新初始化卡尔曼状态。
+        """
+        # 用当前 detection 的 bbox 重新初始化 Kalman Filter
+        self.mean, self.covariance = kf.initiate(detection.to_xyah())
+
+        # 追加最新的 ReID 特征
+        if detection.feature is not None:
+            self.features.append(detection.feature)
+
+        # 重置轨迹状态
+        self.time_since_update = 0
+        self.age = 1
+        self.hits = 1
+        # 直接设为 Confirmed，表示这个 ID 是“老熟人回来”
+        self.state = TrackState.Confirmed
+
 
     def to_tlwh(self):
         """Get current position in bounding box format `(top left x, top left y,
