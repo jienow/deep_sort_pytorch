@@ -1,6 +1,7 @@
 import numpy as np
 from collections import defaultdict
 import matplotlib.pyplot as plt
+plt.rcParams['font.family'] = 'SimHei'
 
 ###############################################
 # 1. 读取 MOT 格式 result.txt
@@ -113,8 +114,8 @@ def plot_metric(title, baseline_value, improved_value, ylabel):
 # 6. 主程序：载入、计算、绘图
 ###############################################
 
-baseline_path = "result_baseline.txt"
-improved_path = "result_improved.txt"
+baseline_path = "D:/master/work/duoyuan/duoyuan3/deep_sort_pytorch/output/BetterMOT17-04-SDPOutput/results.txt"
+improved_path = "D:/master/work/duoyuan/duoyuan3/deep_sort_pytorch/output/MainMOT17-04-SDPOutput/results.txt"
 
 baseline = load_tracks(baseline_path)
 improved = load_tracks(improved_path)
