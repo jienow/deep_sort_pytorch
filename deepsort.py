@@ -10,6 +10,8 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'thirdparty/fast-reid'))
 
 from detector import build_detector
+# from detector.yolov8_detector import YOLOv8Detector
+
 from deep_sort import build_tracker
 from utils.draw import draw_boxes
 from utils.parser import get_config
@@ -143,12 +145,14 @@ class VideoTracker(object):
             self.logger.info("time: {:.03f}s, fps: {:.03f}, detection numbers: {}, tracking numbers: {}" \
                              .format(end - start, 1 / (end - start), bbox_xywh.shape[0], len(outputs)))
 
+Name = 'MOT17-04-SDP'
+video_source = f"D:/master/work/duoyuan/duoyuan3/boxmot/{Name}.mp4"
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--VIDEO_PATH", type=str, default='demo.avi')
+    parser.add_argument("--VIDEO_PATH", type=str, default=video_source)
     parser.add_argument("--config_mmdetection", type=str, default="./configs/mmdet.yaml")
-    parser.add_argument("--config_detection", type=str, default="./configs/mask_rcnn.yaml")
+    parser.add_argument("--config_detection", type=str, default="./configs/yolov3.yaml")
     parser.add_argument("--config_deepsort", type=str, default="./configs/deep_sort.yaml")
     parser.add_argument("--config_fastreid", type=str, default="./configs/fastreid.yaml")
     parser.add_argument("--fastreid", action="store_true")

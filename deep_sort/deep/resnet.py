@@ -1,6 +1,24 @@
 import torch.nn as nn
 import torch
 
+class SEBlock(nn.Module):
+    def __init__(self, channels, reduction=16):
+        super(SEBlock, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channels, channels // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channels // reduction, channels, bias=False),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y
+
+
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -94,6 +112,7 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layers(block, 128, blocks_num[1], stride=2)
         self.layer3 = self._make_layers(block, 256, blocks_num[2], stride=2)
         # self.layer4 = self._make_layers(block, 512, blocks_num[3], stride=1)
+        self.se = SEBlock(256 * block.expansion)
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.fc = nn.Linear(256 * block.expansion, num_classes)
@@ -132,6 +151,7 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         # x = self.layer4(x)
+        x = self.se(x)
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
 
